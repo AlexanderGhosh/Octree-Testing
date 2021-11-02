@@ -1,6 +1,7 @@
 #include <iostream>
 #include <list>
 
+#include "Timer.h"
 #include "Octree.h"
 
 #define MAX_OBJECTS 8
@@ -130,5 +131,9 @@ void main() {
 	root.box = worldBox;
 	root.objects = objects;
 
+	Timer timer;
+	timer.start();
 	BuildTree(&root);
+	timer.stop();
+	timer.log();
 }
