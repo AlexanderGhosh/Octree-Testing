@@ -130,7 +130,9 @@ void main() {
 
 	Octree* root = &trees.front();
 	root->box = worldBox;
-	root->objects = objects;
+	for (auto& obj : objects) {
+		root->objects.push_back(obj);
+	}
 
 	float total = 0;
 
@@ -144,7 +146,9 @@ void main() {
 		trees.emplace_back();
 		root = &trees.front();
 		root->box = worldBox;
-		root->objects = objects;
+		for (auto& obj : objects) {
+			root->objects.push_back(obj);
+		}
 		timer.stop();
 		total += timer.getDuration(0);
 	}
