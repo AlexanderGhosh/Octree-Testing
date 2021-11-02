@@ -40,6 +40,6 @@ struct Octree {
 	int ChildCount() {
 		return children.size();
 	}
-private:
+
 	inline static int idCounter = 1;
 };
