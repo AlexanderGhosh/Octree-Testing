@@ -77,19 +77,20 @@ void BuildTree(Octree* node) {
 
 	// subdivide the bounding box
 	auto subdivisions = Subdivide(node->box);
-	// create children
-	for (int i = 0; i < MAX_CHILDREN; i++) {
-		Octree* child = CreateNode();
-		child->box = subdivisions[i];
-		node->AddChild(child);
-	}
-
-	// test objects against children
-	for (int i = 0; i < MAX_CHILDREN; i++) {
-		Octree* child = node->children[i];
+	// create children as needed and check bounding
+	int i = -1;
+	for (auto& box : subdivisions) {
+		i++;
+		Octree* child = nullptr;
 		for (auto itt = node->objects.begin(); itt != node->objects.end();) {
-			Vec3& obj = *itt;
-			if (child->box.Contains(obj)) {
+			Vec3& obj = **itt;
+			if (box.Contains(obj)) {
+				// create child and add to parent
+				if (!child) {
+					child = CreateNode();
+					child->box = box;
+					node->AddChild(child);
+				}
 				child->AddObject(obj);
 				itt = node->objects.erase(itt);
 			}
@@ -98,9 +99,29 @@ void BuildTree(Octree* node) {
 			}
 		}
 	}
+	/*for (int i = 0; i < MAX_CHILDREN; i++) {
+		Octree* child = CreateNode();
+		child->box = subdivisions[i];
+		node->AddChild(child);
+	}*/
+
+	// test objects against children
+	/*for (auto c_itt = node->children.begin(); c_itt != node->children.end(); c_itt++) {
+		Octree* child = *c_itt;
+		for (auto itt = node->objects.begin(); itt != node->objects.end();) {
+			Vec3& obj = **itt;
+			if (child->box.Contains(obj)) {
+				child->AddObject(obj);
+				itt = node->objects.erase(itt);
+			}
+			else {
+				itt++;
+			}
+		}
+	}*/
 	// recersive on each child
-	for (int i = 0; i < MAX_CHILDREN; i++) {
-		Octree* child = node->children[i];
+	for (auto itt = node->children.begin(); itt != node->children.end(); itt++) {
+		Octree* child = *itt;
 		BuildTree(child);
 	}
 	
@@ -118,6 +139,8 @@ void main() {
 			randRange(-WORLD_SPACE_X, WORLD_SPACE_X),
 			randRange(-WORLD_SPACE_Y, WORLD_SPACE_Y),
 			randRange(-WORLD_SPACE_Z, WORLD_SPACE_Z));
+
+		//objects[i] = Vec3(2, 2, 2);
 	}
 
 	Vec3 worldMax(WORLD_SPACE_X, WORLD_SPACE_Y, WORLD_SPACE_Z);
@@ -128,7 +151,9 @@ void main() {
 
 	Octree& root = trees.front();
 	root.box = worldBox;
-	root.objects = objects;
+	for (auto& obj : objects) {
+		root.AddObject(obj);
+	}
 
 	BuildTree(&root);
 }
