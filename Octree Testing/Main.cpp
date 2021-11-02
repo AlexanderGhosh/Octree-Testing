@@ -12,6 +12,7 @@
 #define WORLD_SPACE_Z 5
 
 #define MAX_RECERSIVE_DEPTH 10
+#define MAX_ITTERATIONS 1000000
 
 using namespace std;
 
@@ -150,14 +151,30 @@ void main() {
 	BoundingBox worldBox(worldMax, worldMin);
 	auto subDivisions = Subdivide(worldBox);
 
-	Octree& root = trees.front();
-	root.box = worldBox;
+	Octree* root = &trees.front();
+	root->box = worldBox;
 	for (auto& obj : objects) {
-		root.AddObject(obj);
+		root->objects.push_back(&obj);
 	}
+
+	float total = 0;
+
 	Timer timer;
-	timer.start();
-	BuildTree(&root);
-	timer.stop();
-	timer.log();
+	for (int i = 0; i < MAX_ITTERATIONS; i++)
+	{
+		timer.start();
+		BuildTree(root);
+		Octree::idCounter = 1;
+		trees.clear();
+		trees.emplace_back();
+		root = &trees.front();
+		root->box = worldBox;
+		for (auto& obj : objects) {
+			root->objects.push_back(&obj);
+		}
+		timer.stop();
+		total += timer.getDuration(0);
+	}
+	total /= (float)MAX_ITTERATIONS;
+	cout << to_string(total);
 }
