@@ -5,25 +5,24 @@
 
 struct Octree {
 	int id;
-	std::array<Octree*, 8> children;
-	char count;
+	std::list<Octree*> children;
 	Octree* parent;
 	BoundingBox box;
-	std::vector<Vec3> objects;
+	std::vector<Vec3*> objects;
 
-	Octree() : children(), count(0), parent(0), box(), id(idCounter++), objects() { }
+	Octree() : children(), parent(0), box(), id(idCounter++), objects() { }
 
 	bool AddChild(Octree* tree) {
-		if (count == 8) {
+		if (ChildCount() == 8) {
 			return false;
 		}
 		tree->parent = this;
-		children[count++] = tree;
+		children.push_back(tree);
 		return true;
 	}
 
-	void AddObject(Vec3 object) {
-		objects.push_back(object);
+	void AddObject(Vec3& object) {
+		objects.push_back(&object);
 	}
 
 	std::string ToString() {
@@ -40,6 +39,5 @@ struct Octree {
 	int ChildCount() {
 		return children.size();
 	}
-
 	inline static int idCounter = 1;
 };
