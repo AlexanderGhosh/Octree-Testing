@@ -148,17 +148,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="Utils\Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BoundingBox.h" />
-    <ClInclude Include="Octree.h" />
-    <ClInclude Include="Timer.h" />
-    <ClInclude Include="Vec3.h" />
+    <ClInclude Include="Octree\BoundingBox.h" />
+    <ClInclude Include="Octree\Node.h" />
+    <ClInclude Include="Octree\Octree.h" />
+    <ClInclude Include="OpenGL\Camera.h" />
+    <ClInclude Include="OpenGL\OpenGL.h" />
+    <ClInclude Include="OpenGL\Shader.h" />
+    <ClInclude Include="Utils\Timer.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="frag.glsl" />
-    <None Include="vert.glsl" />
+    <None Include="Shader\frag.glsl" />
+    <None Include="Shader\vert.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -3,16 +3,16 @@
 #include <vector>
 #include "BoundingBox.h"
 
-struct Octree {
+struct Node {
 	int id;
-	std::list<Octree*> children;
-	Octree* parent;
+	std::vector<glm::vec3*> objects;
+	std::list<Node*> children;
 	BoundingBox box;
-	std::vector<Vec3*> objects;
+	Node* parent;
 
-	Octree() : children(), parent(0), box(), id(idCounter++), objects() { }
+	Node() : children(), parent(0), box(), id(idCounter++), objects() { }
 
-	bool AddChild(Octree* tree) {
+	bool AddChild(Node* tree) {
 		if (ChildCount() == 8) {
 			return false;
 		}
@@ -21,13 +21,13 @@ struct Octree {
 		return true;
 	}
 
-	void AddObject(Vec3& object) {
+	void AddObject(glm::vec3& object) {
 		objects.push_back(&object);
 	}
 
 	std::string ToString() {
 		std::string childrenStr = "";
-		for (Octree* child : children) {
+		for (Node* child : children) {
 			childrenStr += child ? std::to_string(child->id) : " ";
 			childrenStr += ", ";
 		}
