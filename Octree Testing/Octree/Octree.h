@@ -7,6 +7,10 @@
 #define MIN_OBJECTS 1
 #define MAX_RECERSIVE_DEPTH 1000
 
+#define MIN_BOX_LENGTH_X 1
+#define MIN_BOX_LENGTH_Y 1
+#define MIN_BOX_LENGTH_Z 1
+
 class Octree {
     int nodesExplored = 0;
 	std::list<Node> nodes;
@@ -74,9 +78,11 @@ public:
         // subdivide the bounding box
         auto subdivisions = Subdivide(node->box);
         // create children as needed and check bounding
-        int i = -1;
         for (auto& box : subdivisions) {
-            i++;
+            auto len = box.Length();
+            if (glm::any(glm::lessThanEqual(box.Length(), glm::vec3(MIN_BOX_LENGTH_X, MIN_BOX_LENGTH_Y, MIN_BOX_LENGTH_Z)))) {
+                break; // not contiune because all cudes should be the same dimentions
+            }
             Node* child = nullptr;
             for (auto itt = node->objects.begin(); itt != node->objects.end();) {
                 glm::vec3& obj = **itt;
