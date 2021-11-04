@@ -19,6 +19,9 @@ struct BoundingBox {
 		return max - min;
 	}
 
+	glm::vec3 Center() {
+		return max - Length() * 0.5f;
+	}
 
 	BoundingBox operator + (const glm::vec3& b)  const {
 		return BoundingBox(max + b, min + b);

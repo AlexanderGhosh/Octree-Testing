@@ -8,7 +8,6 @@
 
 #include "Utils/Timer.h"
 #include "Octree/Octree.h"
-
 #include "OpenGL/Shader.h"
 #include "OpenGL/Camera.h"
 
@@ -18,19 +17,18 @@ GLFWwindow* window;
 #define RAD(a) a * PI / 180
 #define DEG(a) a * 180 / PI
 
-#define MAX_OBJECTS 8
+#define MAX_OBJECTS 100
 #define MIN_OBJECTS 1
 #define MAX_CHILDREN 8
-#define WORLD_SPACE_X 5
-#define WORLD_SPACE_Y 5
-#define WORLD_SPACE_Z 5
+#define WORLD_SPACE_X 20
+#define WORLD_SPACE_Y 20
+#define WORLD_SPACE_Z 20
 
-#define MAX_RECERSIVE_DEPTH 10
-#define MAX_ITTERATIONS 10000
+#define MAX_ITTERATIONS 0
 
 std::list<Node> trees; 
 glm::ivec2 DIMENTIONS = { 800, 600 };
-constexpr glm::fvec3 BG_COLOUR = { 0.5, 0.75, 0.5 };
+constexpr glm::fvec3 BG_COLOUR = { 0.5, 0.5, 0.5 };
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float deltaTime = 0;
@@ -69,7 +67,8 @@ int main()
 {
     srand(0);
     InitOpenGL();
-    Shader shader("Shader/vert.glsl", "Shader/frag.glsl");
+    Shader objectShader("ShaderObj/vert.glsl", "ShaderObj/frag.glsl");
+    Shader boxShader("ShaderBox/vert.glsl", "ShaderBox/frag.glsl");
     std::vector<float> vertices = {
         -0.5f, -0.5f, -0.5f,
          0.5f, -0.5f, -0.5f,
@@ -113,7 +112,50 @@ int main()
         -0.5f,  0.5f,  0.5f,
         -0.5f,  0.5f, -0.5f
     };
-    unsigned VAO = OpenGL::CreateBuffer(vertices, { 3 });
+
+    vertices = {
+       0.5, 0.5, 0.5,
+        -0.5, 0.5, 0.5,
+
+       0.5, 0.5, 0.5,
+        0.5, 0.5, -0.5,
+
+        0.5, 0.5, 0.5,
+        0.5, -0.5, 0.5,
+
+        -0.5, -0.5, -0.5,
+        0.5, -0.5, -0.5,
+
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5, 0.5,
+
+        -0.5, -0.5, -0.5,
+        -0.5, 0.5, -0.5,
+
+
+        -0.5, 0.5, -0.5,
+        0.5, 0.5, -0.5,
+
+        -0.5, 0.5, -0.5,
+        -0.5, 0.5, 0.5,
+
+        0.5, -0.5, 0.5,
+        -0.5, -0.5, 0.5,
+
+        0.5, -0.5, 0.5,
+        0.5, -0.5, -0.5,
+
+
+        0.5, 0.5, -0.5,
+        0.5, -0.5, -0.5,
+
+
+        -0.5, 0.5, 0.5,
+        -0.5, -0.5, 0.5
+    };
+
+    unsigned box_VAO = OpenGL::CreateBuffer(vertices, { 3 });
+    vertices.clear();
 
     std::vector<glm::vec3> objects;
     objects.reserve(MAX_OBJECTS);
@@ -121,13 +163,19 @@ int main()
     trees.resize(1);
     // generate random objects within the world space
     for (int i = 0; i < MAX_OBJECTS; i++) {
-        objects[i] = glm::vec3(
+        auto& obj = objects[i];
+        obj = glm::vec3(
             randRange(-WORLD_SPACE_X, WORLD_SPACE_X),
             randRange(-WORLD_SPACE_Y, WORLD_SPACE_Y),
             randRange(-WORLD_SPACE_Z, WORLD_SPACE_Z));
-
-        //objects[i] = Vec3(2, 2, 2);
+        // obj = { 0, 0, 0 };
+        vertices.push_back(obj.x);
+        vertices.push_back(obj.y);
+        vertices.push_back(obj.z);
     }
+
+
+    unsigned obj_VAO = OpenGL::CreateBuffer(vertices, { 3 });
 
     glm::vec3 worldMax(WORLD_SPACE_X, WORLD_SPACE_Y, WORLD_SPACE_Z);
     glm::vec3 worldMin(-WORLD_SPACE_X, -WORLD_SPACE_Y, -WORLD_SPACE_Z);
@@ -138,9 +186,11 @@ int main()
 
     Node* root = tree.CreateTree(worldBox);
 
+
     for (auto& obj : objects) {
         root->objects.push_back(&obj);
     }
+    tree.BuildTree(root);
 
     float total = 0;
 
@@ -161,31 +211,58 @@ int main()
         total += timer.getDuration(0);
     }
     total /= (float)MAX_ITTERATIONS;
-    std::cout << std::to_string(total);
+    // std::cout << std::to_string(total);
 
+    auto bbs = tree.GetBBs();
 
-    while (!glfwWindowShouldClose(window) && false)
+    while (!glfwWindowShouldClose(window))
     {
-        shader.Use();
+        PreDraw();
+        boxShader.Use();
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)DIMENTIONS.x / (float)DIMENTIONS.y, 0.1f, 1000.0f);
-        shader.SetMat4("projection", projection);
+        boxShader.SetMat4("projection", projection);
 
         glm::mat4 view = camera.GetViewMatrix();
-        shader.SetMat4("view", view);
+        boxShader.SetMat4("view", view);
 
-        glBindVertexArray(VAO); 
-        for (unsigned int i = 0; i < 2; i++)
+        objectShader.Use();
+
+        objectShader.SetMat4("projection", projection);
+
+        objectShader.SetMat4("view", view);
+
+        glBindVertexArray(obj_VAO);
+        for (int i = 0; i < MAX_OBJECTS; i++)
         {
             glm::mat4 model(1);
-            model = glm::translate(model, { 0, 0, 0 });
-            model = glm::scale(model, glm::vec3(1.0f / (i + 1.0f)));
-            shader.SetMat4("model", model);
+            model = glm::translate(model, objects[i]);
+            objectShader.SetMat4("model", model);
 
-            glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 3);
+            glDrawArrays(GL_POINTS, 0, MAX_OBJECTS);
+        }
+
+        boxShader.Use();
+
+        glBindVertexArray(box_VAO); 
+
+
+
+        for (int i = 0; i < bbs.size(); i++)
+        {
+            auto& bb = bbs[i];
+
+            glm::mat4 model(1);
+            model = glm::translate(model, bb.Center());
+            model = glm::scale(model, bb.Length());
+            boxShader.SetMat4("model", model);
+
+            boxShader.setFloat("mixValue", (float)i / (float)bbs.size());
+
+            glDrawArrays(GL_LINES, 0, 24);
         }
         glBindVertexArray(0);
-
+        PostDraw();
     }
     OpenGL::CleanUp();
 }

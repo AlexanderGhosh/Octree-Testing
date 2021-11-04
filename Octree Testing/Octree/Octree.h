@@ -5,7 +5,7 @@
 
 #define MAX_CHILDREN 8
 #define MIN_OBJECTS 1
-#define MAX_RECERSIVE_DEPTH 10
+#define MAX_RECERSIVE_DEPTH 1000
 
 class Octree {
     int nodesExplored = 0;
@@ -57,6 +57,7 @@ public:
     void BuildTree(Node* node) {
         // max reccusion depth reached
         if (nodesExplored >= MAX_RECERSIVE_DEPTH) {
+            std::cout << "reccusion depth met\n";
             return;
         }
         // node doesnt exist
@@ -113,5 +114,14 @@ public:
         Node::idCounter = 0;
         nodes.clear();
         nodesExplored = 0;
+    }
+
+    std::vector<BoundingBox> GetBBs() const {
+        std::vector<BoundingBox> bbs{};
+        bbs.reserve(nodes.size());
+        for (auto& node : nodes) {
+            bbs.push_back(node.box);
+        }
+        return bbs;
     }
 };

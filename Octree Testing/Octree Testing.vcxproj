@@ -160,8 +160,10 @@
     <ClInclude Include="Utils\Timer.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shader\frag.glsl" />
-    <None Include="Shader\vert.glsl" />
+    <None Include="ShaderBox\frag.glsl" />
+    <None Include="ShaderBox\vert.glsl" />
+    <None Include="ShaderObj\frag.glsl" />
+    <None Include="ShaderObj\vert.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
