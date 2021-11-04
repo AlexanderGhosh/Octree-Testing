@@ -69,6 +69,8 @@ int main()
     InitOpenGL();
     Shader objectShader("ShaderObj/vert.glsl", "ShaderObj/frag.glsl");
     Shader boxShader("ShaderBox/vert.glsl", "ShaderBox/frag.glsl");
+    Shader rayShader("ShaderRay/vert.glsl", "ShaderRay/frag.glsl");
+
     std::vector<float> vertices = {
         -0.5f, -0.5f, -0.5f,
          0.5f, -0.5f, -0.5f,
@@ -168,7 +170,7 @@ int main()
             randRange(-WORLD_SPACE_X, WORLD_SPACE_X),
             randRange(-WORLD_SPACE_Y, WORLD_SPACE_Y),
             randRange(-WORLD_SPACE_Z, WORLD_SPACE_Z));
-        // obj = { 0, 0, 0 };
+        //obj = { 1, 1, 10 };
         vertices.push_back(obj.x);
         vertices.push_back(obj.y);
         vertices.push_back(obj.z);
@@ -213,6 +215,9 @@ int main()
     total /= (float)MAX_ITTERATIONS;
     // std::cout << std::to_string(total);
 
+    Ray ray({ 20, 20, 20 }, { -2, -2, -1 });
+    auto intersections = tree.GetIntersection(ray, root);
+
     auto bbs = tree.GetBBs();
 
     while (!glfwWindowShouldClose(window))
@@ -220,16 +225,14 @@ int main()
         PreDraw();
         boxShader.Use();
 
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)DIMENTIONS.x / (float)DIMENTIONS.y, 0.1f, 1000.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)DIMENTIONS.x / (float)DIMENTIONS.y, 0.001f, 1000.0f);
         boxShader.SetMat4("projection", projection);
 
         glm::mat4 view = camera.GetViewMatrix();
         boxShader.SetMat4("view", view);
 
         objectShader.Use();
-
         objectShader.SetMat4("projection", projection);
-
         objectShader.SetMat4("view", view);
 
         glBindVertexArray(obj_VAO);
@@ -242,11 +245,20 @@ int main()
             glDrawArrays(GL_POINTS, 0, MAX_OBJECTS);
         }
 
+        glBindVertexArray(box_VAO);
+
+        rayShader.Use();
+        rayShader.SetMat4("projection", projection);
+        rayShader.SetMat4("view", view);
+
+        glm::mat4 m0(1), m1(1);
+        m0 = glm::translate(m0, ray.origin);
+        m1 = glm::translate(m1, ray.origin + ray.dir * 100.0f);
+        rayShader.SetMat4("models[0]", m0);
+        rayShader.SetMat4("models[1]", m1);
+        glDrawArrays(GL_LINES, 0, 2);
+
         boxShader.Use();
-
-        glBindVertexArray(box_VAO); 
-
-
 
         for (int i = 0; i < bbs.size(); i++)
         {
@@ -257,7 +269,7 @@ int main()
             model = glm::scale(model, bb.Length());
             boxShader.SetMat4("model", model);
 
-            boxShader.setFloat("mixValue", (float)i / (float)bbs.size());
+            boxShader.SetFloat("mixValue", bb.hit ? 1.0f : 0.0f);//(float)i / (float)bbs.size()
 
             glDrawArrays(GL_LINES, 0, 24);
         }

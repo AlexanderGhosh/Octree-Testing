@@ -124,4 +124,22 @@ public:
         }
         return bbs;
     }
+
+    std::vector<Node*> GetIntersection(Ray ray, Node* node) {
+        glm::vec3 hit;
+        if (!node->box.Intersects(ray, hit)) {
+            return {};
+        }
+        std::vector<Node*> res{};
+
+        res.push_back(node);
+        node->box.hit = true;
+
+        for (auto& child : node->children) {
+            auto intersection = GetIntersection(ray, child);
+            res.insert(res.end(), intersection.begin(), intersection.end());
+        }
+
+        return res;
+    }
 };
