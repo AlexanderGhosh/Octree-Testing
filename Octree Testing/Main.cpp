@@ -242,7 +242,7 @@ int main()
             model = glm::translate(model, objects[i]);
             objectShader.SetMat4("model", model);
 
-            glDrawArrays(GL_POINTS, 0, MAX_OBJECTS);
+            glDrawArrays(GL_POINTS, 0, 1);
         }
 
         glBindVertexArray(box_VAO);
