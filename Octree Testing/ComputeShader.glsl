@@ -16,18 +16,26 @@ struct Ray{
   vec3 origin;
   vec3 dir;
 };
+struct HitInfo{
+  vec3 hitPos;
+  vec3 colour;
+  vec3 normal;
+  float dist;
+  bool hit;
+};
 
 Circle obj1;
 Circle obj2;
 
 vec3 backColour = vec3(0, 0, 0);
+vec3 getBG(Ray ray);
 
-vec3 getColour(Circle obj, Ray r){
+HitInfo getHitInfo(Circle obj, Ray r){
   vec3 oc = r.origin - obj.pos;
   float a = dot(r.dir, r.dir);
-  float b = 2 * dot(oc, r.dir);
+  float half_b = dot(oc, r.dir);
   float c = dot(oc, oc) - obj.radius * obj.radius;
-  float discrim = b * b - 4 * a * c;
+  float discrim = half_b * half_b - a * c;
 
   float t = 0;
 
@@ -35,20 +43,30 @@ vec3 getColour(Circle obj, Ray r){
     t = -1;
   }
   else{
-    t = (-b - sqrt(discrim)) / (2 * a);
+    t = (-half_b - sqrt(discrim)) / a;
   }
 
-  vec3 n;
+  HitInfo info;
+  info.dist = t;
+
   if(t > 0){
     vec3 p = r.origin + r.dir * t;
-    n = normalize(p + vec3(0, 0, 1));
+    vec3 n = normalize(p - obj.pos);
+    info.hitPos = p;
+    info.normal = n;
+    info.colour = obj.col;
+    info.hit = true;
     //return obj.col;
   }
   else{
-    return backColour;
+    vec3 c = getBG(r);
+    info.hitPos = vec3(0);
+    info.normal = vec3(0);
+    info.colour = c;
+    info.hit = false;
   }
 
-  return (n + 1 * 0.5);
+  return info;
 }
 
 float rand(){
@@ -61,13 +79,17 @@ vec3 rand3(){
   return vec3(rand(), rand(), rand());
 }
 
+vec3 getBG(Ray ray){
+  return mix(vec3(1), vec3(0, 0.4, 0.75), gl_GlobalInvocationID.y / dim.y);
+}
+
 void main(){
   // Object
   obj1.pos = vec3(0, 0, -10);
   obj1.radius = 2;
   obj1.col = vec3(1, 0, 0);
 
-  obj2.pos = vec3(0, -105, 10);
+  obj2.pos = vec3(0, -102, -10);
   obj2.radius = 100;
   obj2.col = vec3(1, 1, 0);
 
@@ -82,13 +104,13 @@ void main(){
   float viewport_width = aspect_ratio * viewport_height;
   float focal_length = 1.0;
 
-  vec3 origin = vec3(0, 1, 0);
+  vec3 origin = vec3(0, 0, 0);
   vec3 horizontal = vec3(viewport_width, 0, 0);
   vec3 vertical = vec3(0, viewport_height, 0);
   vec3 lower_left_corner = origin - horizontal * 0.5 - 
     vertical * 0.5 - vec3(0, 0, focal_length);
 
-  vec4 pixel = vec4(0, 0, 0, 1.0);
+  vec3 pixel = vec3(0, 0, 0);
   
   ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
@@ -99,14 +121,31 @@ void main(){
 
   dir = normalize(dir);
 
-  pixel.rgb = dir;
-
   Ray ray;
   ray.origin = origin;
   ray.dir = dir;
 
-  pixel.rgb = getColour(obj1, ray);
-  pixel.rgb = pixel.rgb == backColour ? getColour(obj2, ray) : pixel.rgb;
+  HitInfo o1 = getHitInfo(obj1, ray);
+  HitInfo o2 = getHitInfo(obj2, ray);
 
-  imageStore(img_out, pixel_coords, pixel);
+  if(o1.hit && !o2.hit){
+    pixel = o1.normal * 0.5 + 0.5;
+  }
+  else if(!o1.hit && o2.hit){
+    pixel = o2.normal * 0.5 + 0.5;
+  }
+  else if(!o1.hit && !o2.hit){
+    pixel = o1.colour;
+  }
+  else{
+    // both hit
+    if(o1.dist < o2.dist){
+      pixel = o1.normal * 0.5 + 0.5;
+    }
+    else{
+      pixel = o2.normal * 0.5 + 0.5;
+    }
+  }
+
+  imageStore(img_out, pixel_coords, vec4(pixel, 1));
 }

@@ -4,27 +4,42 @@ out vec4 colour;
 
 in vec2 texCoords;
 uniform sampler2D tex;
+uniform float seed;
+float seed_ = seed / dot(gl_FragCoord, gl_FragCoord);
 
+float rand(){
+  float res = fract(sin(seed_) * 100000000.0);
+  seed_ += res;
+  return res;
+}
 
+vec3 getColour(vec2 coords){
+	return texture(tex, coords).rgb;
+}
 
 void main()
 {
     vec2 dim = textureSize(tex, 0);
+	vec2 coords = vec2(texCoords * 0.5 + 0.5);
+	//coords = gl_FragCoord.xy;
+	int samples = 4;
 
-	vec2 rcpRes = vec2(1.0) / dim.xy;
-	vec3 col = vec3(0.0);
-	int numSamples = 4;
-	float rcpNumSamples = 1.0 / float(numSamples);
-	for(int x = 0; x < numSamples; ++x)
-	{
-		for(int y = 0; y < numSamples; ++y)
-		{
-			vec2 adj = vec2(float(x), float(y));
-			vec2 uv = (gl_FragCoord.xy + adj * rcpNumSamples) * rcpRes;
-			col += texture(tex, uv).rgb;
-		}
+	vec3 pixel = vec3(0);
+
+	/*for (int i = 0; i < samples; i++){
+		float u = coords.x + rand();
+		float v = coords.y + rand();
+
+		u = u * 2 - 1;
+		v = v * 2 - 1;
+
+		vec3 c = getColour(vec2(u, v));
+		// c = getColour(coords);
+		pixel += c;
 	}
-	col /= float(numSamples * numSamples);
 
-	colour = vec4(col, 1);
+	pixel /= (samples);
+
+	colour = vec4(pixel, 1);*/
+	colour = vec4(getColour(texCoords), 1);
 }
