@@ -242,6 +242,8 @@ int main()
     float s = rand();
     while (!glfwWindowShouldClose(window))
     {
+        computeShader.Reload();
+
         PreDraw();
         boxShader.Use();
 

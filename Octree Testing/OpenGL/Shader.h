@@ -13,11 +13,14 @@ class Shader
 {
 public:
     unsigned int ID;
+    std::string vertexPath, fragmentPath;
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------
-    Shader() : ID(0) {}
-    Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
+    Shader() : ID(0), vertexPath(), fragmentPath() {}
+    Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr) : Shader() 
     {
+        this->vertexPath = vertexPath;
+        this->fragmentPath = fragmentPath;
         // 1. retrieve the vertex/fragment source code from filePath
         std::string vertexCode;
         std::string fragmentCode;
@@ -165,6 +168,16 @@ public:
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
     }
 
+    virtual void Reload() {
+        std::string vP = vertexPath;
+        std::string fP = fragmentPath;
+        Shader s(vP.c_str(), fP.c_str());
+        this->~Shader();
+        this->ID = s.ID;
+        this->vertexPath = vP;
+        this->fragmentPath = fP;
+    }
+
 protected:
     // utility function for checking shader compilation/linking errors.
     // ------------------------------------------------------------------------
@@ -196,10 +209,12 @@ protected:
 class ComputeShader : public Shader {
 private:
     glm::ivec2 outputSize;
+    std::string file;
 public:
-    ComputeShader() : outputSize(0) { }
+    ComputeShader() : outputSize(0), file() { }
     ComputeShader(std::string file, glm::ivec2 outSize) : ComputeShader() {
         outputSize = outSize;
+        this->file = file;
         // 1. retrieve the vertex/fragment source code from filePath
         std::string computeCode;
         std::ifstream computeFile;
@@ -245,5 +260,15 @@ public:
         if (run) {
             glDispatchCompute(outputSize.x, outputSize.y, 1);
         }
+    }
+
+    void Reload() override {
+        std::string vP = file;
+        glm::ivec2 o = outputSize;
+        ComputeShader s(vP, o);
+        this->~ComputeShader();
+        this->ID = s.ID;
+        this->file = vP;
+        this->outputSize = o;
     }
 };
