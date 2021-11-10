@@ -7,14 +7,14 @@ class Timer {
 public:
     Timer(const std::string name);
     Timer();
-    void start();
-    void start(const std::string& name);
-    void stop();
-    bool pause();
-    bool resume();
-    void log(bool frames = 0);
-    const float& getDuration(bool frames = 0);
-    void reName(const std::string& name);
+    void Start();
+    void Start(const std::string& name);
+    void Stop();
+    bool Pause();
+    bool Resume();
+    void Log(bool frames = 0);
+    const float& GetDuration(bool frames = 0);
+    void ReName(const std::string& name);
 private:
     std::string name;
     static const std::chrono::time_point<std::chrono::high_resolution_clock> getNow();

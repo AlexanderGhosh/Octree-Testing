@@ -10,12 +10,13 @@
 
 class OpenGL {
     inline static std::vector<unsigned> buffers;
+    inline static std::vector<unsigned> textures;
     inline static float lastFrame;
 public:
     static GLFWwindow* Init(const glm::ivec2& dimentions, const std::string& name) {
         glfwInit();
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
         // glfw window creation
@@ -50,6 +51,9 @@ public:
             unsigned& b2 = buffers[i + 1];
             glDeleteBuffers(1, &b1); // vbo
             glDeleteVertexArrays(1, &b2); // vao
+        }
+        for (unsigned& tex : textures) {
+            glDeleteTextures(1, &tex);
         }
         glfwTerminate();
     }
@@ -95,5 +99,19 @@ public:
         float deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         return deltaTime;
+    }
+
+    static unsigned& CreateTexture(const glm::ivec2& dimentions) {
+        unsigned id;
+        glGenTextures(1, &id);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, dimentions.x, dimentions.y, 0, GL_RGBA, GL_FLOAT, nullptr);
+        textures.push_back(id);
+        return id;
     }
 };

@@ -159,6 +159,7 @@
     <ClInclude Include="OpenGL\OpenGL.h" />
     <ClInclude Include="OpenGL\Shader.h" />
     <ClInclude Include="Utils\Timer.h" />
+    <ClInclude Include="Utils\Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ShaderBox\frag.glsl" />

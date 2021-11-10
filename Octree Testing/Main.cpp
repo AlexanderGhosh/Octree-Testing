@@ -27,7 +27,7 @@ GLFWwindow* window;
 #define MAX_ITTERATIONS 0
 
 std::list<Node> trees; 
-glm::ivec2 DIMENTIONS = { 800, 600 };
+glm::ivec2 DIMENTIONS = { 600, 450 };
 constexpr glm::fvec3 BG_COLOUR = { 0.5, 0.5, 0.5 };
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -43,7 +43,6 @@ void InitOpenGL() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glPointSize(10);
 }
 
@@ -70,6 +69,7 @@ int main()
     Shader objectShader("ShaderObj/vert.glsl", "ShaderObj/frag.glsl");
     Shader boxShader("ShaderBox/vert.glsl", "ShaderBox/frag.glsl");
     Shader rayShader("ShaderRay/vert.glsl", "ShaderRay/frag.glsl");
+    Shader quadShader("ShaderQuad/vert.glsl", "ShaderQuad/frag.glsl");
 
     std::vector<float> vertices = {
         -0.5f, -0.5f, -0.5f,
@@ -158,6 +158,16 @@ int main()
 
     unsigned box_VAO = OpenGL::CreateBuffer(vertices, { 3 });
     vertices.clear();
+    vertices = {
+        -1, -1, 0,
+        -1, 1, 0,
+        1, 1, 0,
+        -1, -1, 0,
+        1, 1, 0,
+        1, -1, 0
+    };
+    unsigned quad_VAO = OpenGL::CreateBuffer(vertices, { 3 });
+
 
     std::vector<glm::vec3> objects;
     objects.reserve(MAX_OBJECTS);
@@ -199,7 +209,7 @@ int main()
     Timer timer;
     for (int i = 0; i < MAX_ITTERATIONS; i++)
     {
-        timer.start();
+        timer.Start();
 
         tree.BuildTree(root);
 
@@ -209,17 +219,27 @@ int main()
             root->objects.push_back(&obj);
         }
 
-        timer.stop();
-        total += timer.getDuration(0);
+        timer.Stop();
+        total += timer.GetDuration(0);
     }
     total /= (float)MAX_ITTERATIONS;
     // std::cout << std::to_string(total);
 
     Ray ray({ 20, 20, 20 }, { -2, -2, -1 });
-    auto intersections = tree.GetIntersection(ray, root);
+
+    timer.Start("itt");
+    auto it = tree.GetIntersectionItterative(ray, root);
+    timer.Log();
 
     auto bbs = tree.GetBBs();
 
+
+    ComputeShader computeShader("ComputeShader.glsl", DIMENTIONS);
+
+    unsigned tex = OpenGL::CreateTexture(DIMENTIONS);
+    glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    float s = rand();
     while (!glfwWindowShouldClose(window))
     {
         PreDraw();
@@ -273,7 +293,30 @@ int main()
 
             glDrawArrays(GL_LINES, 0, 24);
         }
+
+        // compute shader
+        computeShader.Use(false);
+        computeShader.SetFloat("seed", s);
+        auto w_p = ((float)-DIMENTIONS.x * 0.5f) * camera.Position.x + 
+            ((float)DIMENTIONS.y * 0.5f) * camera.Position.y - 
+            (((float)DIMENTIONS.y * 0.5f) / tanf(RAD(45.0f * 0.5f))) * camera.Position.z;
+        computeShader.SetVec2("dim", { DIMENTIONS.x, DIMENTIONS.y });
+        computeShader.Use();
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        // compute shader
+
+        quadShader.Use();
+        quadShader.SetInt("tex", 0);
+
+        glBindVertexArray(quad_VAO);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
         glBindVertexArray(0);
+
         PostDraw();
     }
     OpenGL::CleanUp();

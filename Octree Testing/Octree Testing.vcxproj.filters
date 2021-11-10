@@ -13,6 +13,7 @@
     <ClInclude Include="OpenGL\OpenGL.h" />
     <ClInclude Include="Octree\Node.h" />
     <ClInclude Include="Octree\Ray.h" />
+    <ClInclude Include="Utils\Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ShaderBox\frag.glsl" />

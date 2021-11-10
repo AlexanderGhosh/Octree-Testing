@@ -2,6 +2,7 @@
 #include <list>
 
 #include "Node.h"
+#include <stack>
 
 #define MAX_CHILDREN 8
 #define MIN_OBJECTS 1
@@ -64,7 +65,7 @@ public:
             std::cout << "reccusion depth met\n";
             return;
         }
-        // node doesnt exist
+        // node doesn't exist
         if (!node) {
             return;
         }
@@ -81,6 +82,7 @@ public:
         for (auto& box : subdivisions) {
             auto len = box.Length();
             if (glm::any(glm::lessThanEqual(box.Length(), glm::vec3(MIN_BOX_LENGTH_X, MIN_BOX_LENGTH_Y, MIN_BOX_LENGTH_Z)))) {
+                std::cout << "skiped subdivison\n";
                 break; // not contiune because all cudes should be the same dimentions
             }
             Node* child = nullptr;
@@ -131,7 +133,7 @@ public:
         return bbs;
     }
 
-    std::vector<Node*> GetIntersection(Ray ray, Node* node) {
+    std::vector<Node*> GetIntersectionRecersive(Ray ray, Node* node) {
         glm::vec3 hit;
         if (!node->box.Intersects(ray, hit)) {
             return {};
@@ -142,10 +144,34 @@ public:
         node->box.hit = true;
 
         for (auto& child : node->children) {
-            auto intersection = GetIntersection(ray, child);
+            auto intersection = GetIntersectionRecersive(ray, child);
             res.insert(res.end(), intersection.begin(), intersection.end());
         }
 
         return res;
+    }
+
+    std::vector<Node*> GetIntersectionItterative(Ray ray, Node* node) {
+        std::vector<Node*> intersections;
+        std::stack<Node*> s;
+        int maxStack = 0;
+        Node* curr = node;
+        s.push(curr);
+
+        while (!s.empty()) {
+            maxStack = glm::max((int)s.size(), maxStack);
+            curr = s.top();
+            s.pop();
+
+            glm::vec3 hitPoint;
+            if (curr->box.Intersects(ray, hitPoint)) {
+                curr->box.hit = true;
+                intersections.push_back(curr);
+                for (auto& child : curr->children) {
+                    s.push(child);
+                }
+            }
+        }
+        return intersections;
     }
 };

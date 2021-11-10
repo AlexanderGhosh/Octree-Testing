@@ -8,20 +8,20 @@ Timer::Timer() : s(), e(), pausing()
 Timer::Timer(const std::string name) : s(), e(), pausing(), name(name) {
 
 }
-void Timer::start() { s = getNow(); }
-void Timer::start(const std::string& name)
+void Timer::Start() { s = getNow(); }
+void Timer::Start(const std::string& name)
 {
-    reName(name);
-    start();
+    ReName(name);
+    Start();
 }
 ;
-void Timer::stop()
+void Timer::Stop()
 {
     e = getNow();
     if (pausing.size() % 2 != 0)
         pausing.push_back(e);
 };
-bool Timer::pause()
+bool Timer::Pause()
 {
     if (pausing.size() % 2 == 0) {
         pausing.push_back(getNow());
@@ -29,7 +29,7 @@ bool Timer::pause()
     }
     return false;
 };
-bool Timer::resume()
+bool Timer::Resume()
 {
     if (pausing.size() % 2 != 0) {
         pausing.push_back(getNow());
@@ -37,12 +37,12 @@ bool Timer::resume()
     }
     return false;
 };
-void Timer::log(bool frames) {
-    stop();
+void Timer::Log(bool frames) {
+    Stop();
     std::string units = frames ? " Frames" : " Milliseconds";
-    std::cout << name << ": " << std::to_string(getDuration(frames)) << units << std::endl;
+    std::cout << name << ": " << std::to_string(GetDuration(frames)) << units << std::endl;
 };
-const float& Timer::getDuration(bool frames)
+const float& Timer::GetDuration(bool frames)
 {
     auto elementAt = [](std::list<std::chrono::time_point<std::chrono::high_resolution_clock>>& l, int i) {
         auto s = l.begin();
@@ -57,7 +57,7 @@ const float& Timer::getDuration(bool frames)
         d = (d / 1000.0f) * 60.0f;
     return d;
 };
-void Timer::reName(const std::string& name) {
+void Timer::ReName(const std::string& name) {
     this->name = name;
 }
 const std::chrono::time_point<std::chrono::high_resolution_clock> Timer::getNow()
