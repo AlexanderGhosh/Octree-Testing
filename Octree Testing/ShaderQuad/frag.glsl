@@ -8,7 +8,7 @@ uniform float seed;
 float seed_ = seed / dot(gl_FragCoord, gl_FragCoord);
 
 float rand(){
-  float res = fract(sin(seed_) * 100000000.0);
+  float res = fract(sin(seed_) * 10000000000.0);
   seed_ += res;
   return res;
 }

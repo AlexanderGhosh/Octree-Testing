@@ -239,13 +239,14 @@ int main()
     unsigned tex = OpenGL::CreateTexture(DIMENTIONS);
     glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-    float s = rand();
+        float s = rand();
     while (!glfwWindowShouldClose(window))
     {
         computeShader.Reload();
 
         PreDraw();
         boxShader.Use();
+        quadShader.Use();
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)DIMENTIONS.x / (float)DIMENTIONS.y, 0.001f, 1000.0f);
         boxShader.SetMat4("projection", projection);
@@ -309,6 +310,7 @@ int main()
 
         quadShader.Use();
         quadShader.SetInt("tex", 0);
+        quadShader.SetFloat("seed", s);
 
         glBindVertexArray(quad_VAO);
 
