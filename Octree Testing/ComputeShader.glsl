@@ -87,11 +87,6 @@ float ReScale(float value, float a, float b, float i, float j);
 vec2 ReScale(vec2 value, float a, float b, float i, float j);
 vec3 ReScale(vec3 value, float a, float b, float i, float j);
 
-
-// Material calculations
-vec3 DiffuseRays(in int childrenRays, in Ray startingRay);
-
-
 float Rand();
 vec2 Rand2();
 vec3 Rand3();
@@ -118,29 +113,33 @@ void main(){
     // antialiasing
     vec2 coords = vec2(pixel_coords);
     vec2 offset = ReScale(Rand2(), 0, 1, -1, 1);
-    //coords += offset;
+    coords += offset;
     ray = CreateRay(coords);
-    // diffuse rays
-    /*for(int j = 0; j < MAX_CHILDREN; j++){
+
+    // all split rays
+    for(int j = 0; j < MAX_CHILDREN; j++){
       weight *= 0.5;
       hit = GetHitInfo(ray);
-      if(!hit.hit){
+      if(hit.hit) {
+        if(hit.material == DIFFUSE) {
+          // create new ray
+          vec3 target = hit.normal + RandHemisphere(hit.normal);
+          target = normalize(target);
+          ray = CreateRay(hit.hitPos, target);
+        }
+        else if(hit.material == METAL) {
+          // create new ray
+          ray = CreateRay(hit.hitPos, reflect(ray.dir, hit.normal));
+        }
+      }
+      else {
         // hit the backgound
         col = BG_COLOUR;
         break;
       }
-      // create new ray
-      vec3 target = vec3(0);
-      target = hit.normal + RandHemisphere(hit.normal);
-      target = normalize(target);
-      ray = CreateRay(hit.hitPos, target);
-      //col = ReScale(target, -1, 1, 0, 1);
-      //break;
-    }p*/
-    //pixel = col * weight;
-    pixel += DiffuseRays(MAX_CHILDREN, ray);
-    //pixel = col;
-    // reset values
+    }
+    pixel += col * weight;
+    // reset for the next sample
     hit = CreateHitInfo();
     col = vec3(0);
     weight = 1;
@@ -313,26 +312,4 @@ HitInfo GetHitInfo(Ray ray){HitInfo res = CreateHitInfo();
     }
   }
   return res;
-}
-
-vec3 DiffuseRays(in int childrenRays, in Ray startingRay){
-  float weight = 1.0;
-  Ray ray = startingRay;
-  HitInfo hit = CreateHitInfo();
-  vec3 col = vec3(0);
-  for(int j = 0; j < childrenRays; j++){
-    weight *= 0.5;
-    hit = GetHitInfo(ray);
-    if(!hit.hit){
-      // hit the backgound
-      col = BG_COLOUR;
-      break;
-    }
-    // create new ray
-    vec3 target = vec3(0);
-    target = hit.normal + RandHemisphere(hit.normal);
-    target = normalize(target);
-    ray = CreateRay(hit.hitPos, target);
-  }
-  return col * weight;
 }
