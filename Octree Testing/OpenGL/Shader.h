@@ -1,5 +1,4 @@
 #pragma once
-
 #include <GL/glew.h>
 
 #include <glm.hpp>
@@ -209,9 +208,9 @@ protected:
 class ComputeShader : public Shader {
 private:
     glm::ivec2 outputSize;
-    std::string file;
+    std::string file, shaderText;
 public:
-    ComputeShader() : outputSize(0), file() { }
+    ComputeShader() : outputSize(0), file(), shaderText() { }
     ComputeShader(std::string file, glm::ivec2 outSize) : ComputeShader() {
         outputSize = outSize;
         this->file = file;
