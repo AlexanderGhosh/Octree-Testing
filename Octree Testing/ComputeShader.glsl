@@ -13,10 +13,11 @@ const int METAL = 1;
 const vec3 BG_COLOUR = mix(vec3(1), vec3(0, 0.25, 0.75),
   gl_GlobalInvocationID.y / dim.y);
 
-const int MAX_CHILDREN = 10;
+const int MAX_CHILDREN = 2;
+const int LIGHT_COUNT = 1;
 const int OBJECT_COUNT = 2;
 const float GAMMA_VALUE = 1.0 / 2.2;
-const int MAX_SAMPLES = 4;
+const int MAX_SAMPLES = 10;
 const float INV_SAMPLES = 1.0 / float(MAX_SAMPLES);
 const vec3 CAMERA_POS = vec3(0, 0, -5);
 const float INFINITY = 1000000000.0;
@@ -40,14 +41,20 @@ struct HitInfo{
   bool hit;
   int material;
 };
+struct Light{
+  vec3 pos;
+  vec3 colour;
+};
 
 Circle objects[OBJECT_COUNT];
+Light lights[LIGHT_COUNT];
 
 Ray CreateRay(vec3 origin = vec3(0), vec3 dir = vec3(0, 0, -1));
 Circle CreateCircle(vec3 pos=vec3(0), 
   float radius=1, vec3 colour=vec3(1, 0, 0), int mat = DIFFUSE);
 HitInfo CreateHitInfo(bool hit = false, vec3 hitPos = vec3(0),
   vec3 colour = BG_COLOUR, vec3 norm = vec3(0, 1, 0), float dist = 0, int mat = DIFFUSE);
+Light CreateLight(vec3 pos=vec3(0), vec3 colour=vec3(1, 0, 0));
 
 HitInfo GetHitInfo(Circle obj, Ray r, vec2 range = vec2(0, INFINITY));
 
@@ -83,6 +90,14 @@ Ray CreateRay(vec2 pixelCoords){
   return ray;
 }
 
+bool IntersectsLight(Ray ray, Light light) {
+  float dist = length(light.pos - ray.origin);
+
+  HitInfo info = GetHitInfo(ray);
+
+  return !info.hit || info.dist > dist;
+}
+
 float ReScale(float value, float a, float b, float i, float j);
 vec2 ReScale(vec2 value, float a, float b, float i, float j);
 vec3 ReScale(vec3 value, float a, float b, float i, float j);
@@ -95,8 +110,10 @@ vec3 RandHemisphere(vec3 normal);
 
 void main(){
   // Objects
-  objects[0] = CreateCircle(vec3(0, 0, -10), 2, vec3(0.75));
-  objects[1] = CreateCircle(vec3(0, -102, -10), 100, vec3(0.5));
+  objects[0] = CreateCircle(vec3(0, 0, -10), 2, vec3(0, 1, 0));
+  objects[1] = CreateCircle(vec3(0, -102, -10), 100, vec3(1, 0, 1));
+
+  lights[0] = Light(vec3(0, 3, -10), vec3(1, 0, 0));
 
   vec3 pixel = vec3(0, 0, 0);
   
@@ -108,7 +125,7 @@ void main(){
   Ray ray = CreateRay();
   HitInfo hit = CreateHitInfo();
   vec3 col = vec3(0);
-  float weight = 1;
+  vec3 attenuation = vec3(1);
   for(int i = 0; i < MAX_SAMPLES; i++){
     // antialiasing
     vec2 coords = vec2(pixel_coords);
@@ -118,31 +135,47 @@ void main(){
 
     // all split rays
     for(int j = 0; j < MAX_CHILDREN; j++){
-      weight *= 0.5;
       hit = GetHitInfo(ray);
       if(hit.hit) {
         if(hit.material == DIFFUSE) {
           // create new ray
           vec3 target = hit.normal + RandHemisphere(hit.normal);
           target = normalize(target);
+          if(target.x < EPSLON && target.y < EPSLON && target.z < EPSLON){
+            target = hit.normal;
+          }
           ray = CreateRay(hit.hitPos, target);
+          attenuation *= hit.colour;
         }
         else if(hit.material == METAL) {
           // create new ray
           ray = CreateRay(hit.hitPos, reflect(ray.dir, hit.normal));
+          attenuation *= hit.colour;
         }
+
+        // SHADOW RAYS
+        for(int k = 0; k < LIGHT_COUNT; k++) {
+          Light l = lights[k];
+          vec3 dir = l.pos - hit.hitPos;
+          dir = normalize(dir);
+          Ray shadowRay = CreateRay(hit.hitPos, dir);
+          if(IntersectsLight(shadowRay, l)) {
+            attenuation *= l.colour;
+          }
+        }
+        
       }
       else {
         // hit the backgound
-        col = BG_COLOUR;
+        attenuation *= BG_COLOUR;
         break;
       }
     }
-    pixel += col * weight;
+    pixel += attenuation;
     // reset for the next sample
     hit = CreateHitInfo();
     col = vec3(0);
-    weight = 1;
+    attenuation = vec3(1);
   }
 
   pixel *= INV_SAMPLES;
@@ -150,7 +183,7 @@ void main(){
   pixel = GammaCorrect(pixel);
 
   if(pixel.x < EPSLON){
-    pixel = vec3(1, 1, 0);
+    //pixel = vec3(0, 1, 0.5);
   }
   
   imageStore(img_out, pixel_coords, vec4(pixel, 1));
@@ -201,6 +234,13 @@ HitInfo CreateHitInfo(bool hit = false, vec3 hitPos = vec3(0),
   info.normal = norm;
   info.dist = dist;
   return info;
+}
+
+Light CreateLight(vec3 pos=vec3(0), vec3 colour=vec3(1, 0, 0)) {    
+  Light light;
+  light.pos = pos;
+  light.colour = colour;
+  return light;
 }
 
 HitInfo GetHitInfo(Circle obj, Ray r, vec2 range = vec2(0, INFINITY)){
