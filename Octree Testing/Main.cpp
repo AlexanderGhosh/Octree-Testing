@@ -27,7 +27,7 @@ GLFWwindow* window;
 #define MAX_ITTERATIONS 0
 
 std::list<Node> trees; 
-glm::ivec2 DIMENTIONS = { 600, 450 };
+glm::ivec2 DIMENTIONS = { 800, 800 };
 constexpr glm::fvec3 BG_COLOUR = { 0.5, 0.5, 0.5 };
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -44,6 +44,7 @@ void InitOpenGL() {
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glPointSize(10);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void PreDraw() {
@@ -247,8 +248,6 @@ int main()
         computeShader.Reload();
 
         PreDraw();
-        boxShader.Use();
-        quadShader.Use();
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)DIMENTIONS.x / (float)DIMENTIONS.y, 0.001f, 1000.0f);
         boxShader.SetMat4("projection", projection);
@@ -283,7 +282,10 @@ int main()
         rayShader.SetMat4("models[1]", m1);
         glDrawArrays(GL_LINES, 0, 2);
 
+
         boxShader.Use();
+        boxShader.SetMat4("projection", projection);
+        boxShader.SetMat4("view", view);
 
         for (int i = 0; i < bbs.size(); i++)
         {
@@ -298,7 +300,8 @@ int main()
 
             glDrawArrays(GL_LINES, 0, 24);
         }
-
+        /*
+        
         // compute shader
         computeShader.Use(false);
         computeShader.SetFloat("seed", s);
@@ -319,7 +322,7 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, tex);
 
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 6);*/
 
         glBindVertexArray(0);
 
