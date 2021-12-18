@@ -229,7 +229,8 @@ int main()
 
     timer.Start("itt");
     auto it = tree.GetIntersectionItterative(ray, root);
-    timer.Log();
+    //timer.Log();
+    timer.Stop();
 
     auto bbs = tree.GetBBs();
 
@@ -239,9 +240,10 @@ int main()
     unsigned tex = OpenGL::CreateTexture(DIMENTIONS);
     glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-        float s = rand();
+    float s = rand();
     while (!glfwWindowShouldClose(window))
     {
+        std::cout << std::to_string(1.0f / deltaTime) << "\r";
         computeShader.Reload();
 
         PreDraw();
