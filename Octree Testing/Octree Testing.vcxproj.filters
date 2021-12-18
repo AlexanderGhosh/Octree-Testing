@@ -5,14 +5,10 @@
     <ClCompile Include="Utils\Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Octree\BoundingBox.h" />
-    <ClInclude Include="Octree\Octree.h" />
     <ClInclude Include="Utils\Timer.h" />
     <ClInclude Include="OpenGL\Shader.h" />
     <ClInclude Include="OpenGL\Camera.h" />
     <ClInclude Include="OpenGL\OpenGL.h" />
-    <ClInclude Include="Octree\Node.h" />
-    <ClInclude Include="Octree\Ray.h" />
     <ClInclude Include="Utils\Utils.h" />
   </ItemGroup>
   <ItemGroup>

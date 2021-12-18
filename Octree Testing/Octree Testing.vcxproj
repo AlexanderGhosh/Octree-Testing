@@ -151,10 +151,6 @@
     <ClCompile Include="Utils\Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Octree\BoundingBox.h" />
-    <ClInclude Include="Octree\Node.h" />
-    <ClInclude Include="Octree\Octree.h" />
-    <ClInclude Include="Octree\Ray.h" />
     <ClInclude Include="OpenGL\Camera.h" />
     <ClInclude Include="OpenGL\OpenGL.h" />
     <ClInclude Include="OpenGL\Shader.h" />
