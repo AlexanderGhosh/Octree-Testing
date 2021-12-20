@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+#include <FastNoiseLight.h>
+
 #include "Utils/Timer.h"
 #include "Octree/Octree.h"
 #include "OpenGL/Shader.h"
@@ -20,13 +22,12 @@ GLFWwindow* window;
 #define MAX_OBJECTS 100
 #define MIN_OBJECTS 1
 #define MAX_CHILDREN 8
-#define WORLD_SPACE_X 20
-#define WORLD_SPACE_Y 20
-#define WORLD_SPACE_Z 20
+#define WORLD_SPACE_X MAX_OBJECTS / 2
+#define WORLD_SPACE_Y 5
+#define WORLD_SPACE_Z MAX_OBJECTS / 2
 
 #define MAX_ITTERATIONS 0
 
-std::list<Node> trees; 
 glm::ivec2 DIMENTIONS = { 800, 800 };
 constexpr glm::fvec3 BG_COLOUR = { 0.5, 0.5, 0.5 };
 
@@ -168,23 +169,30 @@ int main()
         1, -1, 0
     };
     unsigned quad_VAO = OpenGL::CreateBuffer(vertices, { 3 });
+    vertices.clear();
 
+    FastNoiseLite noise;
+    noise.SetNoiseType(FastNoiseLite::NoiseType::NoiseType_OpenSimplex2);
 
     std::vector<glm::vec3> objects;
-    objects.reserve(MAX_OBJECTS);
-    objects.resize(MAX_OBJECTS);
-    trees.resize(1);
+    objects.reserve(MAX_OBJECTS * MAX_OBJECTS);
     // generate random objects within the world space
     for (int i = 0; i < MAX_OBJECTS; i++) {
-        auto& obj = objects[i];
-        obj = glm::vec3(
-            randRange(-WORLD_SPACE_X, WORLD_SPACE_X),
-            randRange(-WORLD_SPACE_Y, WORLD_SPACE_Y),
-            randRange(-WORLD_SPACE_Z, WORLD_SPACE_Z));
-        //obj = { 1, 1, 10 };
-        vertices.push_back(obj.x);
-        vertices.push_back(obj.y);
-        vertices.push_back(obj.z);
+        for (int j = 0; j < MAX_OBJECTS; j++) {
+            auto obj = glm::vec3(
+                randRange(-WORLD_SPACE_X, WORLD_SPACE_X),
+                randRange(-WORLD_SPACE_Y, WORLD_SPACE_Y),
+                randRange(-WORLD_SPACE_Z, WORLD_SPACE_Z));
+
+            obj.x = i - MAX_OBJECTS / 2 + 0.5;
+            obj.y = noise.GetNoise((float) i, (float) j);
+            obj.z = j - MAX_OBJECTS / 2 + 0.5;
+            objects.push_back(obj);
+
+            vertices.push_back(obj.x);
+            vertices.push_back(obj.y);
+            vertices.push_back(obj.z);
+        }
     }
 
 
@@ -199,20 +207,30 @@ int main()
 
     Node* root = tree.CreateTree(worldBox);
 
-
     for (auto& obj : objects) {
         root->objects.push_back(&obj);
     }
-    tree.BuildTree(root);
+    tree.BuildTreeItterative(root);
+
+    std::vector<Node*> over;
+
+    for (Node& n : tree.nodes) {
+        if (n.objects.size() > 1) {
+            //n.box.hit = true;
+            over.push_back(&n);
+        }
+    }
+
+    std::cout << over.size();
 
     float total = 0;
 
     Timer timer;
+    timer.Start();
     for (int i = 0; i < MAX_ITTERATIONS; i++)
     {
-        timer.Start();
 
-        tree.BuildTree(root);
+        tree.BuildTreeItterative(root);
 
         tree.Reset();
         root = tree.CreateTree(worldBox);
@@ -220,16 +238,16 @@ int main()
             root->objects.push_back(&obj);
         }
 
-        timer.Stop();
-        total += timer.GetDuration(0);
     }
+    timer.Stop();
+    total = timer.GetDuration(0);
     total /= (float)MAX_ITTERATIONS;
     // std::cout << std::to_string(total);
 
     Ray ray({ 20, 20, 20 }, { -2, -2, -1 });
 
     timer.Start("itt");
-    auto it = tree.GetIntersectionItterative(ray, root);
+    // auto it = tree.GetIntersectionItterative(ray, root);
     //timer.Log();
     timer.Stop();
 
@@ -244,7 +262,7 @@ int main()
     float s = rand();
     while (!glfwWindowShouldClose(window))
     {
-        std::cout << std::to_string(1.0f / deltaTime) << "\r";
+        // std::cout << std::to_string(1.0f / deltaTime) << "\r";
         computeShader.Reload();
 
         PreDraw();
@@ -260,7 +278,7 @@ int main()
         objectShader.SetMat4("view", view);
 
         glBindVertexArray(obj_VAO);
-        for (int i = 0; i < MAX_OBJECTS; i++)
+        for (int i = 0; i < MAX_OBJECTS * MAX_OBJECTS; i++)
         {
             glm::mat4 model(1);
             model = glm::translate(model, objects[i]);
@@ -340,18 +358,20 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    float dt = deltaTime * 2;
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::FORWARD, dt);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::BACKWARD, dt);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::LEFT, dt);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::RIGHT, dt);
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::UP, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::UP, dt);
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        camera.ProcessKeyboard(Camera_Movement::DOWN, deltaTime);
+        camera.ProcessKeyboard(Camera_Movement::DOWN, dt);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)

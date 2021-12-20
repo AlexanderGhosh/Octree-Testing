@@ -8,13 +8,12 @@
 #define MIN_OBJECTS 1
 #define MAX_RECERSIVE_DEPTH 1000
 
-#define MIN_BOX_LENGTH_X 1
-#define MIN_BOX_LENGTH_Y 1
-#define MIN_BOX_LENGTH_Z 1
+#define MIN_BOX_LENGTH_X 0.5
+#define MIN_BOX_LENGTH_Y 0.5
+#define MIN_BOX_LENGTH_Z 0.5
 
 class Octree {
     int nodesExplored = 0;
-	std::list<Node> nodes;
 
     std::array<BoundingBox, MAX_CHILDREN> Subdivide(BoundingBox& box) {
         std::array<BoundingBox, MAX_CHILDREN> res{};
@@ -56,10 +55,11 @@ class Octree {
         return &nodes.back();
     }
 public:
+    std::list<Node> nodes;
     Octree() : nodesExplored(0), nodes() {
         Reset();
     }
-    void BuildTree(Node* node) {
+    void BuildTreeRecersive(Node* node) {
         // max reccusion depth reached
         if (nodesExplored >= MAX_RECERSIVE_DEPTH) {
             std::cout << "reccusion depth met\n";
@@ -81,7 +81,8 @@ public:
         // create children as needed and check bounding
         for (auto& box : subdivisions) {
             auto len = box.Length();
-            if (glm::any(glm::lessThanEqual(box.Length(), glm::vec3(MIN_BOX_LENGTH_X, MIN_BOX_LENGTH_Y, MIN_BOX_LENGTH_Z)))) {
+            if (glm::any(glm::lessThanEqual(box.Length(), 
+                glm::vec3(MIN_BOX_LENGTH_X, MIN_BOX_LENGTH_Y, MIN_BOX_LENGTH_Z)))) {
                 std::cout << "skiped subdivison\n";
                 break; // not contiune because all cudes should be the same dimentions
             }
@@ -105,9 +106,54 @@ public:
         // recersive on each child
         for (auto itt = node->children.begin(); itt != node->children.end(); itt++) {
             Node* child = *itt;
-            BuildTree(child);
+            BuildTreeRecersive(child);
         }
 
+    }
+
+    void BuildTreeItterative(Node* node) {
+        // node doesn't exist
+        if (!node) {
+            return;
+        }
+        std::stack<Node*> s;
+        s.push(node);
+
+        while(!s.empty()) {
+            Node* n = s.top();
+            s.pop();
+            // already subdivided enough
+            if (n->objects.size() <= MIN_OBJECTS) {
+                continue;
+            }
+            auto subdivisions = Subdivide(n->box);
+            for (auto box : subdivisions) {
+
+                // if box has reached the min size
+                auto len = box.Length();
+                if (glm::all(glm::lessThan(len,
+                    glm::vec3(MIN_BOX_LENGTH_X, MIN_BOX_LENGTH_Y, MIN_BOX_LENGTH_Z)))) {
+                    break;
+                }
+
+                Node* child = nullptr;
+                for (auto itt = n->objects.begin(); itt != n->objects.end();) {
+                    auto& o = **itt;
+                    if (box.Contains(o)) {
+                        if (!child) {
+                            child = CreateNode(box);
+                            s.push(child);
+                            n->AddChild(child);
+                        }
+                        child->AddObject(o);
+                        itt = n->objects.erase(itt);
+                        continue;
+                    }
+                    itt++;
+                }
+
+            }
+        }
     }
 
     Node* CreateTree(BoundingBox& enclosingSpace) {
